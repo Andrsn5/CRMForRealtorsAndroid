@@ -1,0 +1,33 @@
+{
+  "project_info": {
+    "project_number": "123456789000",
+    "project_id": "crm-for-realtors",
+    "storage_bucket": "crm-for-realtors.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789000:android:abc123def456",
+        "android_client_info": {
+          "package_name": "com.example.crmforrealtors"
+        }
+      },
+      "api_key": [
+        {
+          "current_key": "AIzaSyExampleKey1234567890ABCDEFGHIJKLMN"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        }
+      },
+      "oauth_client": []
+    }
+  ],
+  "configuration_version": "1"
+}

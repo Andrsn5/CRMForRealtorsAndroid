@@ -19,16 +19,19 @@ class UserEmployeeRepositoryImpl @Inject constructor(
     private val employeeDao: EmployeeDao,
     override val prefs: UserPreferences
 ) : UserEmployeeRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeMyProfile(): Flow<Employee?> {
-        return getCurrentEmployeeIdFlow().flatMapConcat { employeeId ->
-            employeeDao.observeEmployeeById(employeeId).map { entity ->
-                entity?.toDomain()
+        return requireManagerRoleFlow().flatMapConcat{
+            getCurrentEmployeeIdFlow().flatMapConcat { employeeId ->
+                employeeDao.observeEmployeeById(employeeId).map { entity ->
+                    entity?.toDomain()
+                }
             }
         }
     }
 
     override suspend fun refreshMyProfile() {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getMyProfile(employeeId)
         if (remote.success) {
@@ -41,11 +44,13 @@ class UserEmployeeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyProfile(): Employee? {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         return employeeDao.getById(employeeId)?.toDomain()
     }
 
     override suspend fun updateMyProfile(employee: Employee) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         // Убеждаемся, что сотрудник обновляет только свой профиль
         if (employee.id != employeeId) {

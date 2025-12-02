@@ -12,24 +12,28 @@ import com.company.crm.domain.repository.user.UserConditionRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class UserConditionRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val conditionDao: ConditionDao,
     override val prefs: UserPreferences
 ) : UserConditionRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeMyConditions(): Flow<List<Condition>> {
-        return getCurrentEmployeeIdFlow().flatMapConcat { employeeId ->
-            // Для пользователей показываем условия привязанные к их задачам
-            conditionDao.observeConditionsForEmployee(employeeId).map { list ->
-                list.map { it.toDomain() }
+        return requireManagerRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                conditionDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
             }
         }
     }
 
     override suspend fun refreshMyConditions() {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getConditionsForEmployee(employeeId)
         if (remote.success) {
@@ -43,6 +47,7 @@ class UserConditionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyConditionById(id: Int): Condition? {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val condition = conditionDao.getById(id)
         // Проверяем, что условие привязано к задаче пользователя
@@ -54,6 +59,7 @@ class UserConditionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createCondition(condition: Condition) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createCondition(employeeId, condition.toDto())
 

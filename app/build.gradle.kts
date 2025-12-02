@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-    kotlin("kapt")
 }
 
 android {
@@ -22,6 +21,34 @@ android {
 
         buildConfigField("String", "BASE_URL", "\"http://192.168.0.101:8080/webapp/api/\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    android {
+        // ... другие настройки
+
+        packaging {
+            resources {
+                excludes += setOf(
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE",
+                    "META-INF/LICENSE.txt",
+                    "META-INF/license.txt",
+                    "META-INF/NOTICE",
+                    "META-INF/NOTICE.txt",
+                    "META-INF/notice.txt",
+                    "META-INF/ASL2.0",
+                    "META-INF/*.kotlin_module",
+                    "META-INF/INDEX.LIST",
+                    "META-INF/io.netty.versions.properties",
+                    "META-INF/versions/9/io.netty.versions.properties",
+                    "DebugProbesKt.bin",
+                    "/META-INF/{AL2.0,LGPL2.1}"
+                )
+                pickFirsts += setOf(
+                    "META-INF/io.netty.versions.properties"
+                )
+            }
+        }
     }
 
     buildTypes {
@@ -46,11 +73,11 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-            freeCompilerArgs.addAll(
-                "-P",
-                "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=StrongSkipping"
-            )
         }
+    }
+
+    hilt {
+        enableAggregatingTask = false
     }
 
     buildFeatures {
@@ -71,7 +98,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.firebase.database.ktx)
     implementation(libs.firebase.appdistribution.gradle)
-    testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -116,6 +142,17 @@ dependencies {
     implementation(libs.firebase.crashlytics.ktx)
     implementation(libs.firebase.database.ktx)
 
+    // Test dependencies
+    testImplementation(libs.test.junit)
+    testImplementation(libs.test.mockk)
+    testImplementation(libs.test.turbine)
+    testImplementation(libs.test.coroutines)
+    testImplementation(libs.test.core.ktx)
+
+    // Android Test dependencies (если нужно тестировать на Android)
+    androidTestImplementation(libs.test.mockk.android)
+    androidTestImplementation(libs.test.turbine)
+    androidTestImplementation(libs.test.coroutines)
 
 
 }

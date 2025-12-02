@@ -13,21 +13,28 @@ import com.company.crm.domain.repository.user.UserObjectRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminObjectRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val objectDao: ObjectDao,
     override val prefs: UserPreferences
 ) : AdminObjectRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllObjects(): Flow<List<Object>> {
-        return objectDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                objectDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllObjects() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllObjects(employeeId)
         if (remote.success) {
@@ -40,10 +47,12 @@ class AdminObjectRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getObjectById(id: Int): Object? {
+        requireAdminRole()
         return objectDao.getById(id)?.toDomain()
     }
 
     override suspend fun createObject(objects: Object) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createObject(employeeId, objects.toDto())
 
@@ -55,6 +64,7 @@ class AdminObjectRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateObject(objects: Object) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updateObject(employeeId, objects.id, objects.toDto())
 
@@ -66,6 +76,7 @@ class AdminObjectRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteObject(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteObject(employeeId, id)
 

@@ -19,16 +19,19 @@ class UserClientRepositoryImpl @Inject constructor(
     private val clientDao: ClientDao,
     override val prefs: UserPreferences
 ) : UserClientRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeMyClients(): Flow<List<Client>> {
-        return getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
-            clientDao.observeClientsForEmployee(employeeId).map { list ->
-                list.map { it.toDomain() }
+        return requireManagerRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                clientDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
             }
         }
     }
 
     override suspend fun refreshMyClients() {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getClientsForEmployee(employeeId)
         if (remote.success) {
@@ -41,6 +44,7 @@ class UserClientRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyClientById(id: Int): Client? {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val client = clientDao.getById(id)
         return if (client != null && clientDao.isClientAccessibleByEmployee(client.id, employeeId)) {
@@ -51,6 +55,7 @@ class UserClientRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createClient(client: Client) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createClient(employeeId, client.toDto())
 

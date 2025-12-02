@@ -21,4 +21,39 @@ abstract class BaseRepository {
             }
         }
     }
+    protected suspend fun requireAdminRole() {
+        val role = prefs.getRole()
+        if (role != "ADMIN") {
+            throw SecurityException("Admin role required")
+        }
+    }
+
+    protected suspend fun getCurrentRole(): String {
+        return prefs.getRole() ?: "EMPLOYEE"
+    }
+    protected fun requireAdminRoleFlow(): Flow<Unit> {
+        return prefs.authStateFlow.map { authState ->
+            when (authState) {
+                is AuthState.Authenticated -> {
+                    if (authState.role != "ADMIN") {
+                        throw SecurityException("Admin role required")
+                    }
+                }
+                else -> throw SecurityException("Authentication required")
+            }
+        }
+    }
+
+    protected fun requireManagerRoleFlow(): Flow<Unit> {
+        return prefs.authStateFlow.map { authState ->
+            when (authState) {
+                is AuthState.Authenticated -> {
+                    if (authState.role != "MANAGER" && authState.role != "ADMIN") {
+                        throw SecurityException("Manager or Admin role required")
+                    }
+                }
+                else -> throw SecurityException("Authentication required")
+            }
+        }
+    }
 }

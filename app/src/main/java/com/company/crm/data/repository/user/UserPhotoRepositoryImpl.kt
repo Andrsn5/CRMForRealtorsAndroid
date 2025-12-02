@@ -12,23 +12,28 @@ import com.company.crm.domain.repository.user.UserPhotoRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class UserPhotoRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val photoDao: PhotoDao,
     override val prefs: UserPreferences
 ) : UserPhotoRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeMyPhotos(): Flow<List<Photo>> {
-        return getCurrentEmployeeIdFlow().flatMapConcat { employeeId ->
-            photoDao.observePhotosForEmployee(employeeId).map { list ->
-                list.map { it.toDomain() }
+        return requireManagerRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                photoDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
             }
         }
     }
 
     override suspend fun refreshMyPhotos() {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         // Для пользователей получаем фото через доступные объекты
         val remote = api.getPhotosForEmployee(employeeId)
@@ -42,6 +47,7 @@ class UserPhotoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyPhotoById(id: Int): Photo? {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val photo = photoDao.getById(id)
         return if (photo != null && photoDao.isPhotoAccessibleByEmployee(id, employeeId)) {
@@ -52,12 +58,14 @@ class UserPhotoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPhotosByObjectId(objectId: Int): Flow<List<Photo>> {
+        getCurrentRole()
         return photoDao.observeByObjectId(objectId).map { list ->
             list.map { it.toDomain() }
         }
     }
 
     override suspend fun createPhoto(photo: Photo) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createPhoto(employeeId, photo.toDto())
 

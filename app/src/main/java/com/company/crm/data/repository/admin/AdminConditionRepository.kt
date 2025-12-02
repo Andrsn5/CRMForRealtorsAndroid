@@ -11,7 +11,9 @@ import com.company.crm.domain.model.Condition
 import com.company.crm.domain.repository.admin.AdminConditionRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminConditionRepositoryImpl @Inject constructor(
     override val api: ApiService,
@@ -19,13 +21,19 @@ class AdminConditionRepositoryImpl @Inject constructor(
     override val prefs: UserPreferences
 ) : AdminConditionRepository, BaseRepository() {
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllConditions(): Flow<List<Condition>> {
-        return conditionDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                conditionDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllConditions() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllConditions(employeeId)
         if (remote.success) {
@@ -38,10 +46,12 @@ class AdminConditionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getConditionById(id: Int): Condition? {
+        requireAdminRole()
         return conditionDao.getById(id)?.toDomain()
     }
 
     override suspend fun createCondition(condition: Condition) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createCondition(employeeId, condition.toDto())
 
@@ -53,6 +63,7 @@ class AdminConditionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateCondition(condition: Condition) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updateCondition(employeeId, condition.id, condition.toDto())
 
@@ -64,6 +75,7 @@ class AdminConditionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteCondition(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteCondition(employeeId, id)
 

@@ -11,21 +11,28 @@ import com.company.crm.domain.model.Deal
 import com.company.crm.domain.repository.admin.AdminDealRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminDealRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val dealDao: DealDao,
     override val prefs: UserPreferences
 ) : AdminDealRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllDeals(): Flow<List<Deal>> {
-        return dealDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                dealDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllDeals() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllDeals(employeeId)
         if (remote.success) {
@@ -38,10 +45,12 @@ class AdminDealRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getDealById(id: Int): Deal? {
+        requireAdminRole()
         return dealDao.getById(id)?.toDomain()
     }
 
     override suspend fun createDeal(deal: Deal) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createDeal(employeeId, deal.toDto())
 
@@ -53,6 +62,7 @@ class AdminDealRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateDeal(deal: Deal) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updateDeal(employeeId, deal.id, deal.toDto())
 
@@ -64,6 +74,7 @@ class AdminDealRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteDeal(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteDeal(employeeId, id)
 

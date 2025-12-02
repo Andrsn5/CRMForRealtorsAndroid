@@ -12,23 +12,28 @@ import com.company.crm.domain.repository.user.UserTaskRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class UserTaskRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val taskDao: TaskDao,
     override val prefs: UserPreferences
 ) : UserTaskRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeMyTasks(): Flow<List<Task>> {
-        return getCurrentEmployeeIdFlow().flatMapConcat { employeeId ->
-            taskDao.observeTasksForEmployee(employeeId).map { list ->
-                list.map { it.toDomain() }
+        return requireManagerRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                taskDao.observeTasksForEmployee(employeeId).map { list ->
+                    list.map { it.toDomain() }
+                }
             }
         }
     }
 
     override suspend fun refreshMyTasks() {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getTasksForEmployee(employeeId)
         if (remote.success) {
@@ -42,6 +47,7 @@ class UserTaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyTaskById(id: Int): Task? {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val task = taskDao.getById(id)
         return if (task != null && (task.responsibleId == employeeId || task.creatorId == employeeId)) {
@@ -52,6 +58,7 @@ class UserTaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createTask(task: Task) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createTask(employeeId, task.toDto())
 
@@ -63,6 +70,7 @@ class UserTaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateMyTask(task: Task) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         // Проверяем, что пользователь имеет доступ к задаче
         val existingTask = taskDao.getById(task.id)
@@ -79,6 +87,7 @@ class UserTaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteMyTask(id: Int) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         // Проверяем права на удаление (только создатель)
         val existingTask = taskDao.getById(id)

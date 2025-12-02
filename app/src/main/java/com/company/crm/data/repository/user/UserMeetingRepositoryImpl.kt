@@ -12,23 +12,28 @@ import com.company.crm.domain.repository.user.UserMeetingRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class UserMeetingRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val meetingDao: MeetingDao,
     override val prefs: UserPreferences
 ) : UserMeetingRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeMyMeetings(): Flow<List<Meeting>> {
-        return getCurrentEmployeeIdFlow().flatMapConcat { employeeId ->
-            meetingDao.observeMeetingsForEmployee(employeeId).map { list ->
-                list.map { it.toDomain() }
+        return requireManagerRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                meetingDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
             }
         }
     }
 
     override suspend fun refreshMyMeetings() {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getMeetingsForEmployee(employeeId)
         if (remote.success) {
@@ -41,6 +46,7 @@ class UserMeetingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMyMeetingById(id: Int): Meeting? {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val meeting = meetingDao.getById(id)
         return if (meeting != null && meetingDao.isMeetingAccessibleByEmployee(id, employeeId)) {
@@ -51,6 +57,7 @@ class UserMeetingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createMeeting(meeting: Meeting) {
+        getCurrentRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createMeeting(employeeId, meeting.toDto())
 

@@ -11,21 +11,28 @@ import com.company.crm.domain.model.Employee
 import com.company.crm.domain.repository.admin.AdminEmployeeRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminEmployeeRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val employeeDao: EmployeeDao,
     override val prefs: UserPreferences
 ) : AdminEmployeeRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllEmployees(): Flow<List<Employee>> {
-        return employeeDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                employeeDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllEmployees() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllEmployees(employeeId)
         if (remote.success) {
@@ -38,10 +45,12 @@ class AdminEmployeeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getEmployeeById(id: Int): Employee? {
+        requireAdminRole()
         return employeeDao.getById(id)?.toDomain()
     }
 
     override suspend fun createEmployee(employee: Employee) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createEmployee(employeeId, employee.toDto())
 
@@ -53,6 +62,7 @@ class AdminEmployeeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateEmployee(employee: Employee) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updateEmployee(employeeId, employee.id, employee.toDto())
 
@@ -64,6 +74,7 @@ class AdminEmployeeRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteEmployee(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteEmployee(employeeId, id)
 

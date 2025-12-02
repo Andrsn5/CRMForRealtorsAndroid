@@ -3,18 +3,21 @@ agp = "8.13.1"
 kotlin = "2.0.20"
 coreKtx = "1.17.0"
 junit = "4.13.2"
+mockk = "1.13.10"
+turbine = "1.1.0"
+coroutines-test = "1.10.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.9.4"
 activityCompose = "1.11.0"
 composeBom = "2024.10.00"
 composeCompiler = "2.0.0"
-hilt = "2.51.1"
+hilt = "2.52"
 hiltNav = "1.3.0"
 ktor = "2.3.10"
 serialization = "1.6.3"
 coroutine = "1.10.2"
-room = "2.3.0-beta02"
+room = "2.6.1"
 datastore = "1.1.7"
 workmanager = "2.11.0"
 navigation = "2.9.6"
@@ -30,7 +33,6 @@ firebaseAppdistributionGradle = "5.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
@@ -81,6 +83,14 @@ firebase-crashlytics-ktx = { module = "com.google.firebase:firebase-crashlytics-
 firebase-database-ktx = { module = "com.google.firebase:firebase-database-ktx", version.ref = "firebase-database" }
 firebase-appdistribution-gradle = { group = "com.google.firebase", name = "firebase-appdistribution-gradle", version.ref = "firebaseAppdistributionGradle" }
 
+
+# Testing
+test-junit = { group = "junit", name = "junit", version.ref = "junit" }
+test-mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+test-mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
+test-turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+test-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines-test" }
+test-core-ktx = { group = "androidx.arch.core", name = "core-testing", version = "2.2.0" }
 
 
 [plugins]

@@ -19,7 +19,7 @@ import com.company.crm.data.model.entity.ObjectEntity
 import com.company.crm.data.model.entity.PhotoEntity
 import com.company.crm.data.model.entity.TaskEntity
 
-@Database(entities = [TaskEntity::class, EmployeeEntity::class, ObjectEntity::class, ClientEntity::class, PhotoEntity::class, MeetingEntity::class, DealEntity::class, ConditionEntity::class], version = 1)
+@Database(entities = [TaskEntity::class, EmployeeEntity::class, ObjectEntity::class, ClientEntity::class, PhotoEntity::class, MeetingEntity::class, DealEntity::class, ConditionEntity::class], version = 1,exportSchema = false)
 abstract class AppDatabase : RoomDatabase(){
     abstract fun clientDao(): ClientDao
     abstract fun conditionDao(): ConditionDao

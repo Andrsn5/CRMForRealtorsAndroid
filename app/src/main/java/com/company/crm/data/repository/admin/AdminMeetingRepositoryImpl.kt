@@ -11,21 +11,28 @@ import com.company.crm.domain.model.Meeting
 import com.company.crm.domain.repository.admin.AdminMeetingRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminMeetingRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val meetingDao: MeetingDao,
     override val prefs: UserPreferences
 ) : AdminMeetingRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllMeetings(): Flow<List<Meeting>> {
-        return meetingDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                meetingDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllMeetings() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllMeetings(employeeId)
         if (remote.success) {
@@ -38,10 +45,12 @@ class AdminMeetingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getMeetingById(id: Int): Meeting? {
+        requireAdminRole()
         return meetingDao.getById(id)?.toDomain()
     }
 
     override suspend fun createMeeting(meeting: Meeting) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createMeeting(employeeId, meeting.toDto())
 
@@ -53,6 +62,7 @@ class AdminMeetingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateMeeting(meeting: Meeting) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updateMeeting(employeeId, meeting.id, meeting.toDto())
 
@@ -64,6 +74,7 @@ class AdminMeetingRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteMeeting(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteMeeting(employeeId, id)
 

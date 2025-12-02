@@ -140,7 +140,7 @@ object AppModule {
             AppDatabase::class.java,
             Config.DATABASE_NAME
         )
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(dropAllTables = true)
             .build()
     }
 

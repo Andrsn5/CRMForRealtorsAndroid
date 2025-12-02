@@ -11,21 +11,28 @@ import com.company.crm.domain.model.Client
 import com.company.crm.domain.repository.admin.AdminClientRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminClientRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val clientDao: ClientDao,
     override val prefs: UserPreferences
 ) : AdminClientRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllClients(): Flow<List<Client>> {
-        return clientDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                clientDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllClients() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllClients(employeeId)
         if (remote.success) {
@@ -42,6 +49,7 @@ class AdminClientRepositoryImpl @Inject constructor(
     }
 
     override suspend fun createClient(client: Client) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createClient(employeeId, client.toDto())
 
@@ -53,6 +61,7 @@ class AdminClientRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateClient(client: Client) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updateClient(employeeId, client.id, client.toDto())
 
@@ -64,6 +73,7 @@ class AdminClientRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteClient(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteClient(employeeId, id)
 

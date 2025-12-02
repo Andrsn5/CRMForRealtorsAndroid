@@ -11,21 +11,28 @@ import com.company.crm.domain.model.Photo
 import com.company.crm.domain.repository.admin.AdminPhotoRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlin.collections.map
 
 class AdminPhotoRepositoryImpl @Inject constructor(
     override val api: ApiService,
     private val photoDao: PhotoDao,
     override val prefs: UserPreferences
 ) : AdminPhotoRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllPhotos(): Flow<List<Photo>> {
-        return photoDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                photoDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllPhotos() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllPhotos(employeeId)
         if (remote.success) {
@@ -38,16 +45,19 @@ class AdminPhotoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPhotoById(id: Int): Photo? {
+        requireAdminRole()
         return photoDao.getById(id)?.toDomain()
     }
 
     override suspend fun getPhotosByObjectId(objectId: Int): Flow<List<Photo>> {
+        requireAdminRole()
         return photoDao.observeByObjectId(objectId).map { list ->
             list.map { it.toDomain() }
         }
     }
 
     override suspend fun createPhoto(photo: Photo) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.createPhoto(employeeId, photo.toDto())
 
@@ -59,6 +69,7 @@ class AdminPhotoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updatePhoto(photo: Photo) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.updatePhoto(employeeId, photo.id, photo.toDto())
 
@@ -70,6 +81,7 @@ class AdminPhotoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deletePhoto(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deletePhoto(employeeId, id)
 

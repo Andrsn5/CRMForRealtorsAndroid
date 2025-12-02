@@ -11,6 +11,7 @@ import com.company.crm.domain.model.Task
 import com.company.crm.domain.repository.admin.AdminTaskRepository
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 class AdminTaskRepositoryImpl @Inject constructor(
@@ -18,14 +19,19 @@ class AdminTaskRepositoryImpl @Inject constructor(
     private val taskDao: TaskDao,
     override val prefs: UserPreferences
 ) : AdminTaskRepository, BaseRepository() {
-
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeAllTasks(): Flow<List<Task>> {
-        return taskDao.observeAll().map { list ->
-            list.map { it.toDomain() }
+        return requireAdminRoleFlow().flatMapLatest {
+            getCurrentEmployeeIdFlow().flatMapLatest { employeeId ->
+                taskDao.observeAll().map { list ->
+                    list.map { it.toDomain() }
+                }
+            }
         }
     }
 
     override suspend fun refreshAllTasks() {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val remote = api.getAllTasks(employeeId)
         if (remote.success) {
@@ -38,10 +44,12 @@ class AdminTaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTaskById(id: Int): Task? {
+        requireAdminRole()
         return taskDao.getById(id)?.toDomain()
     }
 
     override suspend fun upsertTask(task: Task) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = if (task.id == 0) {
             api.createTask(employeeId, task.toDto())
@@ -57,6 +65,7 @@ class AdminTaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteTask(id: Int) {
+        requireAdminRole()
         val employeeId = getCurrentEmployeeId()
         val response = api.deleteTask(employeeId, id)
         if (response.success) {
